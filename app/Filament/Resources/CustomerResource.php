@@ -2,19 +2,16 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Exports\CustomerExporter;
 use App\Filament\Resources\CustomerResource\Pages;
 use App\Models\Customer;
-use Filament\Actions\Exports\Enums\ExportFormat;
-use Filament\Forms;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use pxlrbt\FilamentExcel\Actions\Tables\ExportAction;
+use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Filament\Tables\Actions\ExportAction;
+use pxlrbt\FilamentExcel\Exports\ExcelExport;
 
 
 class CustomerResource extends Resource
@@ -87,11 +84,21 @@ class CustomerResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                ExportAction::make()->exports([
+                    ExcelExport::make()->fromTable(),
+                ])
+                    ->label('Export Data')
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
+                ExportBulkAction::make()
+                    ->exports([
+                        ExcelExport::make()
+                            ->fromTable()
+                    ])
+                    ->label('Export Selected Data')
             ]);
     }
 

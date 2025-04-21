@@ -44,10 +44,6 @@ class CustomerExporter extends Exporter
         ];
     }
 
-    public static function getChunkSize(): int
-    {
-        return PHP_INT_MAX; 
-    }
 }
 
 
