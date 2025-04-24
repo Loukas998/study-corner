@@ -3,8 +3,6 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\VisitResource\Pages;
-use App\Filament\Resources\VisitResource\RelationManagers;
-use App\Models\Customer;
 use App\Models\Visit;
 use Filament\Forms;
 use Filament\Forms\Components\Select;
@@ -15,7 +13,9 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
+use pxlrbt\FilamentExcel\Exports\ExcelExport;
+use pxlrbt\FilamentExcel\Actions\Tables\ExportAction;
+use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 
 class VisitResource extends Resource
 {
@@ -32,8 +32,8 @@ class VisitResource extends Resource
                         'customer',
                         'full_name',
                         fn (Builder $query) => $query->select('*')
-                            ->selectRaw("CONCAT(phone_number, ' - ', first_name, ' ', last_name) as full_name")
-                            ->orderByRaw("CONCAT(first_name, ' ', last_name)")
+                            ->selectRaw("CONCAT(phone_number, ' - ', first_name, ' ', IFNULL(middle_name, ''), ' ', last_name) as full_name")
+                            ->orderByRaw("CONCAT(first_name, ' ', IFNULL(middle_name, ''), ' ', last_name)")
                     )
                     ->searchable()
                     ->preload()
@@ -42,17 +42,18 @@ class VisitResource extends Resource
                             ->required()
                             ->maxLength(255),
                             
+                        TextInput::make('middle_name')
+                            ->maxLength(255),
+                            
                         TextInput::make('last_name')
                             ->required()
                             ->maxLength(255),
-                            
+                        
                         TextInput::make('national_id')
-                            ->required()
                             ->maxLength(255),
                         
                         TextInput::make('phone_number')
-                        ->required()
-                        ->maxLength(255),
+                            ->maxLength(255),
                     ])
                     ->required(),
 
@@ -80,6 +81,8 @@ class VisitResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('customer.first_name')->label('First name')
                     ->searchable(),
+                Tables\Columns\TextColumn::make('customer.middle_name')->label('Middle name')
+                    ->searchable(),
                 Tables\Columns\TextColumn::make('customer.last_name')->label('Last name')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('customer.phone_number')->label('Phone number')
@@ -100,21 +103,11 @@ class VisitResource extends Resource
                 Tables\Columns\TextColumn::make('visit_duration')
                     ->label('Visit duration')
                     ->state(function(Visit $visit) {
-                        $entrance = \Carbon\Carbon::parse($visit->entrance_time);
-                        $exit = \Carbon\Carbon::parse($visit->exit_time);
-                        $totalMinutes = $entrance->diffInMinutes($exit);
-
-                        $hours = floor($totalMinutes / 60);
-                        $minutes = $totalMinutes % 60;
-
-                        $visit_duration = $hours < 0 ? 'Still Active' : sprintf('%d:%02d', $hours, $minutes);
-                        if($hours < 0)
-                        {
-                            return $visit_duration;
+                        if ($visit->exit_time === null) {
+                            return 'Still Active';
                         }
-                        $visit->visit_duration = $visit_duration;
-                        $visit->save();
-                        return $visit_duration;
+                        
+                        return $visit->visit_duration;
                     })
             ])
             ->filters([
@@ -147,11 +140,43 @@ class VisitResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\Action::make('close_visit')
+                    ->label('Close Visit')
+                    ->color('success')
+                    ->visible(fn (Visit $record): bool => $record->exit_time === null)
+                    ->action(function (Visit $record): void {
+                        $record->exit_time = now();
+                        
+                        // Calculate visit duration
+                        $entrance = \Carbon\Carbon::parse($record->entrance_time);
+                        $exit = \Carbon\Carbon::parse($record->exit_time);
+                        $totalMinutes = $entrance->diffInMinutes($exit);
+                        
+                        $hours = floor($totalMinutes / 60);
+                        $minutes = $totalMinutes % 60;
+                        
+                        $record->visit_duration = sprintf('%d:%02d', $hours, $minutes);
+                        $record->save();
+                    })
+                    ->requiresConfirmation()
+                    ->modalHeading('Close Visit')
+                    ->modalDescription('Are you sure you want to close this visit? This will set the exit time to now.')
+                    ->modalSubmitActionLabel('Yes, close visit'),
+                ExportAction::make()->exports([
+                    ExcelExport::make()->fromTable(),
+                ])
+                    ->label('Export Data')
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
+                ExportBulkAction::make()
+                    ->exports([
+                        ExcelExport::make()
+                            ->fromTable()
+                    ])
+                    ->label('Export Selected Data')
             ]);
     }
 
