@@ -31,10 +31,15 @@ class VisitResource extends Resource
                     ->relationship(
                         'customer',
                         'full_name',
-                        fn (Builder $query) => $query->select('*')
-                            ->selectRaw("CONCAT(phone_number, ' - ', first_name, ' ', IFNULL(middle_name, ''), ' ', last_name) as full_name")
-                            ->orderByRaw("CONCAT(first_name, ' ', IFNULL(middle_name, ''), ' ', last_name)")
-                    )
+                        function (Builder $query) {
+                            try {
+                                return $query->select('*')
+                                    ->selectRaw("CONCAT(phone_number, ' - ', first_name, ' ', IFNULL(middle_name, ''), ' ', last_name) as full_name")
+                                    ->orderByRaw("CONCAT(first_name, ' ', IFNULL(middle_name, ''), ' ', last_name)");
+                            } catch (\Throwable $e) {
+                                dd('Query failed:', $e->getMessage());
+                            }
+                        })
                     ->searchable()
                     ->preload()
                     ->createOptionForm([
