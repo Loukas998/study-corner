@@ -32,13 +32,23 @@ class VisitResource extends Resource
                         'customer',
                         'full_name',
                         function (Builder $query) {
-                            try {
-                                return $query->select('*')
-                                    ->selectRaw("CONCAT(phone_number, ' - ', first_name, ' ', IFNULL(middle_name, ''), ' ', last_name) as full_name")
-                                    ->orderByRaw("CONCAT(first_name, ' ', IFNULL(middle_name, ''), ' ', last_name)");
-                            } catch (\Throwable $e) {
-                                dd('Query failed:', $e->getMessage());
-                            }
+                            return $query->select('id', 'phone_number', 'first_name', 'last_name', 'middle_name')
+                                ->selectRaw("CONCAT(
+                                    COALESCE(phone_number, ''), 
+                                    ' - ', 
+                                    COALESCE(first_name, ''), 
+                                    ' ', 
+                                    COALESCE(middle_name, ''), 
+                                    ' ', 
+                                    COALESCE(last_name, '')
+                                ) as full_name")
+                                ->orderByRaw("CONCAT(
+                                    COALESCE(first_name, ''), 
+                                    ' ', 
+                                    COALESCE(middle_name, ''), 
+                                    ' ', 
+                                    COALESCE(last_name, '')
+                                )");
                         })
                     ->searchable()
                     ->preload()
