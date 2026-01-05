@@ -3,12 +3,15 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\VisitResource\Pages;
+use App\Models\Subscription;
 use App\Models\Visit;
+use Carbon\Carbon;
 use Filament\Forms;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\TimePicker;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -73,19 +76,17 @@ class VisitResource extends Resource
                     ->required(),
 
                 TimePicker::make('entrance_time')
-                    ->timezone('Asia/Damascus')
                     ->default(now())
                     ->seconds(false)
                     ->required(),
 
                 TimePicker::make('exit_time')
-                    ->timezone('Asia/Damascus')
                     ->seconds(false),
 
                 Forms\Components\DatePicker::make('visit_date')
                     ->weekStartsOnSunday()
                     ->closeOnDateSelection()
-                    ->default(now())
+                    ->default(today())
                     ->required(),
             ]);
     }
@@ -104,11 +105,9 @@ class VisitResource extends Resource
                     ->searchable(),
 
                 Tables\Columns\TextColumn::make('entrance_time')
-                    ->timezone('Asia/Damascus')
                     ->time(),
 
                 Tables\Columns\TextColumn::make('exit_time')
-                    ->timezone('Asia/Damascus')
                     ->time(),
                 
                 Tables\Columns\TextColumn::make('visit_date')
@@ -161,17 +160,58 @@ class VisitResource extends Resource
                     ->visible(fn (Visit $record): bool => $record->exit_time === null)
                     ->action(function (Visit $record): void {
                         $record->exit_time = now();
-                        
                         // Calculate visit duration
                         $entrance = \Carbon\Carbon::parse($record->entrance_time);
                         $exit = \Carbon\Carbon::parse($record->exit_time);
                         $totalMinutes = $entrance->diffInMinutes($exit);
-                        
-                        $hours = floor($totalMinutes / 60);
+                        $hours = $totalMinutes / 60;
+
+                        $floor_hours = floor($hours);
                         $minutes = $totalMinutes % 60;
                         
-                        $record->visit_duration = sprintf('%d:%02d', $hours, $minutes);
+                        $record->visit_duration = sprintf('%d:%02d', $floor_hours, $minutes);
+
+                         // Calculate subscription
+                        $active_subscription = Subscription::where('customer_id', $record->customer_id)
+                            ->where('remaining_hours', '>', 0)
+                            ->where('ends_at', '>=', Carbon::now())
+                            ->with('package')
+                            ->first();
+                        
+                            
+                        if($active_subscription) {
+                            $ceil_hours = ceil($hours);
+                            $remaining_before = $active_subscription->remaining_hours;
+                            $remaining_after = $remaining_before - $ceil_hours;
+                            
+                            $active_subscription->remaining_hours = max(0, $remaining_after);
+                            $active_subscription->save();
+                            if($remaining_after <= 0.0) {
+                                $extra_hours = abs($remaining_after);
+
+                                Notification::make()
+                                    ->title('Subscription Finished')
+                                    ->body(
+                                        "The customer's subscription has ended during this visit.\n" .
+                                        "Extra time consumed: {$extra_hours} hour(s)."
+                                    )
+                                    ->danger()
+                                    ->persistent()
+                                    ->send();
+                            }
+                        }else {
+                            Notification::make()
+                                ->title('Saved successfully')
+                                ->body('Customer has no active subscription. Closing the visit...')
+                                ->success()
+                                ->send();
+                        }
+
                         $record->save();
+                        Notification::make()
+                            ->title('Saved successfully')
+                            ->success()
+                            ->send();
                     })
                     ->requiresConfirmation()
                     ->modalHeading('Close Visit')
