@@ -14,7 +14,7 @@ class Visit extends Model
         return $this->belongsTo(Customer::class);
     }
 
-    public function getVisitDurationDisplayAttribute(): string
+    public function getVisitDurationDisplayAttribute()
     {
         return $this->exit_time === null
             ? 'Still Active'
