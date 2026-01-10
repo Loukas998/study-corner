@@ -180,12 +180,21 @@ class VisitResource extends Resource
                         
                             
                         if($active_subscription) {
-                            $ceil_hours = ceil($hours);
+                            $ceil_hours = $totalMinutes >= 8 ? ceil($hours) : $floor_hours;
                             $remaining_before = $active_subscription->remaining_hours;
                             $remaining_after = $remaining_before - $ceil_hours;
                             
                             $active_subscription->remaining_hours = max(0, $remaining_after);
+                            $remaining_hours = $active_subscription->remaining_hours;
                             $active_subscription->save();
+                            Notification::make()
+                                    ->title('This customer has subscription')
+                                    ->body(
+                                        "The customer has consumed {$ceil_hours} from his subscription.\n" .
+                                        "Remaining hours: {$remaining_hours} hour(s)."
+                                    )
+                                    ->success()
+                                    ->send();
                             if($remaining_after <= 0.0) {
                                 $extra_hours = abs($remaining_after);
 
