@@ -103,10 +103,18 @@ class VisitResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('customer.first_name')->label('First name'),
-                Tables\Columns\TextColumn::make('customer.middle_name')->label('Middle name'),
-                Tables\Columns\TextColumn::make('customer.last_name')->label('Last name'),
-                Tables\Columns\TextColumn::make('customer.phone_number')->label('Phone number'),
+                Tables\Columns\TextColumn::make('customer.first_name')
+                ->searchable()
+                ->label('First name'),
+                Tables\Columns\TextColumn::make('customer.middle_name')
+                ->searchable()
+                ->label('Middle name'),
+                Tables\Columns\TextColumn::make('customer.last_name')
+                ->searchable()
+                ->label('Last name'),
+                Tables\Columns\TextColumn::make('customer.phone_number')
+                ->searchable()
+                ->label('Phone number'),
 
                 Tables\Columns\TextColumn::make('entrance_time')
                     ->timezone('Asia/Damascus')
@@ -240,7 +248,9 @@ class VisitResource extends Resource
                             ->fromTable()
                     ])
                     ->label('Export Selected Data')
-            ]);
+            ])
+            ->paginated([25, 50, 100, 250, 500])
+            ->defaultPaginationPageOption(25);;
     }
 
     public static function getRelations(): array
@@ -259,15 +269,15 @@ class VisitResource extends Resource
         ];
     }
 
-    public static function getGloballySearchableAttributes(): array
-    {
-        return [
-            'customer.first_name',
-            'customer.middle_name',
-            'customer.last_name',
-            'customer.phone_number',
-        ];
-    }
+    // public static function getGloballySearchableAttributes(): array
+    // {
+    //     return [
+    //         'customer.first_name',
+    //         'customer.middle_name',
+    //         'customer.last_name',
+    //         'customer.phone_number',
+    //     ];
+    // }
 
 
 }
