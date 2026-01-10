@@ -26,6 +26,12 @@ class VisitResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->with('customer');
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -97,14 +103,10 @@ class VisitResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('customer.first_name')->label('First name')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('customer.middle_name')->label('Middle name')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('customer.last_name')->label('Last name')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('customer.phone_number')->label('Phone number')
-                    ->searchable(),
+                Tables\Columns\TextColumn::make('customer.first_name')->label('First name'),
+                Tables\Columns\TextColumn::make('customer.middle_name')->label('Middle name'),
+                Tables\Columns\TextColumn::make('customer.last_name')->label('Last name'),
+                Tables\Columns\TextColumn::make('customer.phone_number')->label('Phone number'),
 
                 Tables\Columns\TextColumn::make('entrance_time')
                     ->timezone('Asia/Damascus')
@@ -118,15 +120,8 @@ class VisitResource extends Resource
                     ->date()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('visit_duration')
+                Tables\Columns\TextColumn::make('visit_duration_display')
                     ->label('Visit duration')
-                    ->state(function(Visit $visit) {
-                        if ($visit->exit_time === null) {
-                            return 'Still Active';
-                        }
-                        
-                        return $visit->visit_duration;
-                    })
             ])
             ->filters([
                 Tables\Filters\Filter::make('visit_date')
@@ -263,4 +258,16 @@ class VisitResource extends Resource
             'edit' => Pages\EditVisit::route('/{record}/edit'),
         ];
     }
+
+    public static function getGloballySearchableAttributes(): array
+    {
+        return [
+            'customer.first_name',
+            'customer.middle_name',
+            'customer.last_name',
+            'customer.phone_number',
+        ];
+    }
+
+
 }
