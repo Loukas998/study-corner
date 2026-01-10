@@ -249,7 +249,7 @@ class VisitResource extends Resource
                     ])
                     ->label('Export Selected Data')
             ])
-            ->paginated([25, 50, 100, 250, 500])
+            ->paginated([25, 50, 100, 250])
             ->defaultPaginationPageOption(25);;
     }
 
