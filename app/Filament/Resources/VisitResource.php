@@ -76,11 +76,13 @@ class VisitResource extends Resource
                     ->required(),
 
                 TimePicker::make('entrance_time')
+                    ->timezone('Asia/Damascus')
                     ->default(now())
                     ->seconds(false)
                     ->required(),
 
                 TimePicker::make('exit_time')
+                    ->timezone('Asia/Damascus')
                     ->seconds(false),
 
                 Forms\Components\DatePicker::make('visit_date')
@@ -105,9 +107,11 @@ class VisitResource extends Resource
                     ->searchable(),
 
                 Tables\Columns\TextColumn::make('entrance_time')
+                    ->timezone('Asia/Damascus')
                     ->time(),
 
                 Tables\Columns\TextColumn::make('exit_time')
+                    ->timezone('Asia/Damascus')
                     ->time(),
                 
                 Tables\Columns\TextColumn::make('visit_date')

@@ -65,7 +65,8 @@ return [
     |
     */
 
-    'timezone' => 'Asia/Damascus',
+    // 'timezone' => 'Asia/Damascus',
+    'timezone' => 'UTC',
 
     /*
     |--------------------------------------------------------------------------
