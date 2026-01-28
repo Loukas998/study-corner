@@ -172,6 +172,7 @@ class VisitResource extends Resource
                         $exit = \Carbon\Carbon::parse($record->exit_time);
                         $totalMinutes = $entrance->diffInMinutes($exit);
                         $hours = $totalMinutes / 60;
+                        $minutesMod = $totalMinutes % 60;
 
                         $floor_hours = floor($hours);
                         $minutes = $totalMinutes % 60;
@@ -187,7 +188,7 @@ class VisitResource extends Resource
                         
                             
                         if($active_subscription) {
-                            $ceil_hours = $totalMinutes >= 8 ? ceil($hours) : $floor_hours;
+                            $ceil_hours = $minutesMod >= 8 ? ceil($hours) : $floor_hours;
                             $remaining_before = $active_subscription->remaining_hours;
                             $remaining_after = $remaining_before - $ceil_hours;
                             
